@@ -36,7 +36,7 @@ from six import string_types
 #import libtaxii.clients
 #import libtaxii.messages_11
 #from libtaxii.constants import MSG_STATUS_MESSAGE, ST_SUCCESS
-from libtaxii.messages_11 as tm11
+import libtaxii.messages_11 as tm11
 
 #change: Using cabby instead of libtaxii
 from cabby import create_client
@@ -418,7 +418,7 @@ class TaxiiClient(basepoller.BasePollerFT):
                   '%s - collection %s does not support TAXII 1.1 message binding (%s)' %
                   (self.name, self.collection, tci.type )
             LOG.debug('%s - poll service: %s',
-                self.name, self.poll_service)
+                self.name, self.poll_service))
 
 #change: Not required anymore in Cabby
     # def _poll_fulfillment_request(self, tc, result_id, result_part_number):
