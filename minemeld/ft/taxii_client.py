@@ -1,16 +1,5 @@
-#  Copyright 2015-present Palo Alto Networks, Inc
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
+# Author: Zul
+# Contribution was created in part by me
 
 from __future__ import absolute_import
 
@@ -32,13 +21,8 @@ import netaddr
 import werkzeug.urls
 from six import string_types
 
-#import libtaxii
-#import libtaxii.clients
-#import libtaxii.messages_11
-#from libtaxii.constants import MSG_STATUS_MESSAGE, ST_SUCCESS
 import libtaxii.messages_11 as tm11
 
-#change: Using cabby instead of libtaxii
 from cabby import create_client
 from cabby import constants as const
 
@@ -67,9 +51,6 @@ from . import basepoller
 from . import base
 from . import actorbase
 from .utils import dt_to_millisec, interval_in_sec, utc_millisec
-
-
-
 
 # stix_edh is imported to register the EDH data marking extensions, but it is not directly used.
 # Delete the symbol to silence the warning about the import being unnecessary and prevent the
@@ -135,7 +116,7 @@ class TaxiiClient(basepoller.BasePollerFT):
             True
         )
 
-#change: Added JWT authentication
+		# Added JWT authentication
         self.jwt_auth_url = self.config.get('jwt_auth_url', None)
         self.username = self.config.get('username', None)
         self.password = self.config.get('password', None)
@@ -187,7 +168,7 @@ class TaxiiClient(basepoller.BasePollerFT):
     def _load_side_config(self):
         if not self.client_credentials_required and not self.subscription_id_required:
             LOG.info('{} - side config not needed'.format(self.name))
-            return
+            returnfcf
 
         try:
             with open(self.side_config_path, 'r') as f:
@@ -226,10 +207,8 @@ class TaxiiClient(basepoller.BasePollerFT):
         super(TaxiiClient, self)._saved_state_reset()
         self.last_taxii_run = None
 
-#change: Using Cabby to build TAXII client
+	# Using Cabby to build TAXII client
     def _build_taxii_client(self):
-        #result = libtaxii.clients.HttpClient()
-
         up = urlparse.urlparse(self.discovery_service)
         if up.scheme == 'https':
             use_https = True
@@ -238,86 +217,11 @@ class TaxiiClient(basepoller.BasePollerFT):
         port = up.port
         path = up.path
         result = create_client( host=host, port = port, discovery_path=path, use_https=use_https )
-        result.set_auth( username=self.username, password=self.password, jwt_auth_url=self.jwt_auth_url, ca_cert = self.ca_cert, cert_file=self.cert_file, key_file=self.key_file, verify_ssl=self.client_cert_required )
-
-        # if self.username and self.password:
-        #     if self.key_file and self.cert_file:
-        #         result.set_auth_type(
-        #             libtaxii.clients.HttpClient.AUTH_CERT_BASIC
-        #         )
-        #         result.set_auth_credentials({
-        #             'username': self.username,
-        #             'password': self.password,
-        #             'key_file': self.key_file,
-        #             'cert_file': self.cert_file
-        #         })
-
-        #     else:
-        #         result.set_auth_type(
-        #             libtaxii.clients.HttpClient.AUTH_BASIC
-        #         )
-        #         result.set_auth_credentials({
-        #             'username': self.username,
-        #             'password': self.password
-        #         })
-
-        # else:
-        #     if self.key_file and self.cert_file:
-        #         result.set_auth_type(
-        #             libtaxii.clients.HttpClient.AUTH_CERT
-        #         )
-        #         result.set_auth_credentials({
-        #             'key_file': self.key_file,
-        #             'cert_file': self.cert_file
-        #         })
-
-        #     else:
-        #         result.set_auth_type(
-        #             libtaxii.clients.HttpClient.AUTH_NONE
-        #         )
-
-        # if self.ca_file is not None and os.path.isfile(self.ca_file):
-        #     result.set_verify_server(
-        #         verify_server=True,
-        #         ca_file=self.ca_file
-        #     )
-
+        result.set_auth( username=self.username, password=self.password, jwt_auth_url=self.jwt_auth_url, ca_cert = self.ca_file, cert_file=self.cert_file, key_file=self.key_file, verify_ssl=False ) 
         return result
 
-#change: Not used anymore    
-    # def _call_taxii_service(self, service_url, tc, request):
-    #     up = urlparse.urlparse(service_url)
-    #     hostname = up.hostname
-    #     path = up.path
-    #     port = up.port
-
-    #     resp = tc.call_taxii_service2(
-    #         hostname,
-    #         path,
-    #         libtaxii.constants.VID_TAXII_XML_11,
-    #         request,
-    #         port=port
-    #     )
-
-    #     return resp
-
-#change: Use Cabby to discover services
+	# Use Cabby to discover services
     def _discover_services(self, tc):
-        # msg_id = libtaxii.messages_11.generate_message_id()
-        # request = libtaxii.messages_11.DiscoveryRequest(msg_id)
-        # request = request.to_xml()
-
-        # resp = self._call_taxii_service(self.discovery_service, tc, request)
-
-        # tm = libtaxii.get_message_from_http_response(resp, msg_id)
-
-        # LOG.debug('Discovery_Response {%s} %s',
-        #           type(tm), tm.to_xml(pretty_print=True))
-
-        # if tm.message_type == MSG_STATUS_MESSAGE:
-        #     raise RuntimeError('{} - Error retrieving collections: {} - {}'.format(
-        #         self.name, tm.status_type, tm.message
-        #     ))
         self.collection_mgmt_service = None
         services = tc.discover_services()
         if len(services)==0:
@@ -328,34 +232,12 @@ class TaxiiClient(basepoller.BasePollerFT):
                 continue
             self.collection_mgmt_service=service.address
             break
-        # for si in tm.service_instances:
-        #     if si.service_type != libtaxii.constants.SVC_COLLECTION_MANAGEMENT:
-        #         continue
-
-        #     self.collection_mgmt_service = si.service_address
-        #     break
-
         if self.collection_mgmt_service is None:
             raise RuntimeError('%s - collection management service not found' %
                                self.name)
 
-#change: Use Cabby to check if collection is available for polling
-    def _check_collections(self, tc):
-        # msg_id = libtaxii.messages_11.generate_message_id()
-        # request = libtaxii.messages_11.CollectionInformationRequest(msg_id)
-        # request = request.to_xml()
-
-        # resp = self._call_taxii_service(self.collection_mgmt_service, tc, request)
-
-        # tm = libtaxii.get_message_from_http_response(resp, msg_id)
-
-        # LOG.debug('Collection_Information_Response {%s} %s',
-        #           type(tm), tm.to_xml(pretty_print=True))
-
-        # if tm.message_type == MSG_STATUS_MESSAGE:
-        #     raise RuntimeError('{} - Error retrieving collections: {} - {}'.format(
-        #         self.name, tm.status_type, tm.message
-        #     ))
+	# Use Cabby to check if collection is available for polling
+    def _check_collections(self, tc):        
         collections = tc.get_collections( uri=self.collection_mgmt_service )
         tci = None
         for collection in collections:
@@ -363,83 +245,35 @@ class TaxiiClient(basepoller.BasePollerFT):
                 continue
             else:
                 tci = collection
-
-        # tci = None
-        # for ci in tm.collection_informations:
-        #     if ci.collection_name != self.collection:
-        #         continue
-
-        #     tci = ci
-        #     break
-
         if tci is None:
             raise RuntimeError('%s - collection %s not found' %
                                (self.name, self.collection))
-
-        # if tci.polling_service_instances is None or \
-        #    len(tci.polling_service_instances) == 0:
-
         if len(tci.polling_services)==0:
             raise RuntimeError('%s - collection %s doesn\'t support polling' %
                                (self.name, self.collection))
-
-        # if tci.collection_type != libtaxii.constants.CT_DATA_FEED:
         if tci.type != const.CT_DATA_FEED:
             raise RuntimeError(
                 '%s - collection %s is not a data feed (%s)' %
                  (self.name, self.collection, tci.type )
-        #        (self.name, self.collection, tci.collection_type)
             )
-
-        # for pi in tci.polling_service_instances:
-        #    LOG.info('{} - message binding: {}'.format(
-        #        self.name, pi.poll_message_bindings
-        #    ))
-        #     if pi.poll_message_bindings[0] == libtaxii.constants.VID_TAXII_XML_11:
-        #         self.poll_service = pi.poll_address
-        #         LOG.info('{} - poll service found'.format(self.name))
-        #         break
-        # else:
-        #     raise RuntimeError(
-        #         '%s - collection %s does not support TAXII 1.1 message binding (%s)' %
-        #         (self.name, self.collection, tci.collection_type)
-        #     )
-
-        # LOG.debug('%s - poll service: %s',
-        #           self.name, self.poll_service)
-
         for pi in tci.polling_services:
-            if tci.taxii_binding in pi.message_bindings:
+            if tc.taxii_binding in pi.message_bindings:
                 self.poll_service = pi.address
                 LOG.info('{} - poll service found'.format(self.name))
                 break
             else:
               raise RuntimeError(
                   '%s - collection %s does not support TAXII 1.1 message binding (%s)' %
-                  (self.name, self.collection, tci.type )
+                  (self.name, self.collection, tci.type ) )
             LOG.debug('%s - poll service: %s',
-                self.name, self.poll_service))
+                self.name, self.poll_service)
 
-#change: Not required anymore in Cabby
-    # def _poll_fulfillment_request(self, tc, result_id, result_part_number):
-    #     msg_id = libtaxii.messages_11.generate_message_id()
-    #     request = libtaxii.messages_11.PollFulfillmentRequest(
-    #         message_id=msg_id,
-    #         result_id=result_id,
-    #         result_part_number=result_part_number,
-    #         collection_name=self.collection
-    #     )
-    #     request = request.to_xml()
-
-    #     resp = self._call_taxii_service(self.poll_service, tc, request)
-
-    #     return libtaxii.get_message_from_http_response(resp, msg_id)
-#change New poll function using Cabby
+	# New poll function using Cabby TAXII client
     def poll( self, taxii_client, collection_name, begin_date=None, end_date=None, subscription_id=None, inbox_service=None, content_bindings=None, uri=None ):
         
         request = taxii_client._prepare_poll_request( collection_name, 
-            begin_date=begin_date, 
-            end_date=end_date, 
+            begin_date=None, 
+            end_date=None, 
             subscription_id=subscription_id, 
             inbox_service=inbox_service,
             content_bindings=content_bindings,
@@ -448,7 +282,7 @@ class TaxiiClient(basepoller.BasePollerFT):
         stream = taxii_client._execute_request( request, uri=uri, service_type=const.SVC_POLL )
         response = None
         for obj in stream:
-            if isinstance(obj, tm11ContentBlock):
+            if isinstance(obj, tm11.ContentBlock):
                 yield obj
             else:
                 response = obj
@@ -472,20 +306,8 @@ class TaxiiClient(basepoller.BasePollerFT):
                 if not has_data:
                     break 
 
-
-
-
-#change: using Cabby to poll from Collections
+	# Using Cabby to poll from Collections
     def _poll_collection(self, tc, begin=None, end=None):
-        # msg_id = libtaxii.messages_11.generate_message_id()
-
-        # prargs = dict(
-        #     message_id=msg_id,
-        #     collection_name=self.collection,
-        #     exclusive_begin_timestamp_label=begin,
-        #     inclusive_end_timestamp_label=end,
-        # )
-
         collection_name = self.collection
         begin_date = begin
         end_date = end
@@ -495,43 +317,8 @@ class TaxiiClient(basepoller.BasePollerFT):
         else:
             subscription_id = None
 
-        # if self.subscription_id_required:
-        #     prargs['subscription_id'] = self.subscription_id
-        # else:
-        #     pps = libtaxii.messages_11.PollParameters(
-        #         response_type='FULL',
-        #         allow_asynch=False
-        #     )
-        #     prargs['poll_parameters'] = pps
-
-        # request = libtaxii.messages_11.PollRequest(**prargs)
-
-        # LOG.debug('%s - first poll request %s',
-        #           self.name, request.to_xml(pretty_print=True))
-
-        # request = request.to_xml()
-
-        # resp = self._call_taxii_service(self.poll_service, tc, request)
-
-        # tm = libtaxii.get_message_from_http_response(resp, msg_id)
-
-        # LOG.debug('%s - Poll_Response {%s} %s',
-        #           self.name, type(tm), tm.to_xml(pretty_print=True))
-
-        # if tm.message_type == MSG_STATUS_MESSAGE:
-        #     if tm.status_type == ST_SUCCESS:
-        #         LOG.info('{} - TAXII Server returned success with no STIX packages'.format(
-        #             self.name
-        #         ))
-        #         return []
-
-        #     raise RuntimeError('{} - Error polling: {} - {}'.format(
-        #         self.name, tm.status_type, tm.message
-        #     ))
-
-
-
-        content_blocks = self.poll( self, tc, collection_name, begin_date = begin_date, end_date=end_date, subscription_id=subscription_id, uri=self.poll_service )
+		LOG.info('Polling content blocks')
+        content_blocks = self.poll( tc, collection_name, begin_date=begin_date, end_date=end_date, subscription_id=subscription_id, uri=self.poll_service )
 
         stix_objects = {
             'observables': {},
@@ -540,34 +327,9 @@ class TaxiiClient(basepoller.BasePollerFT):
         }
 
         self._handle_content_blocks(
-            #tm.content_blocks,
             content_blocks,
             stix_objects
         )
-
-        # while tm.more:
-        #     tm = self._poll_fulfillment_request(
-        #         tc,
-        #         result_id=tm.result_id,
-        #         result_part_number=tm.result_part_number+1
-        #     )
-
-        #     LOG.debug('{} - Poll_Response {!r}'.format(
-        #         self.name, tm.to_xml(pretty_print=True)
-        #     ))
-
-        #     if tm.message_type == MSG_STATUS_MESSAGE:
-        #         if tm.status_type == ST_SUCCESS:
-        #             break
-
-        #         raise RuntimeError('{} - Error polling: {} - {}'.format(
-        #             self.name, tm.status_type, tm.message
-        #         ))
-
-        #     self._handle_content_blocks(
-        #         tm.content_blocks,
-        #         stix_objects
-        #     )
 
         LOG.debug('%s - stix_objects: %s', self.name, stix_objects)
 
@@ -614,12 +376,6 @@ class TaxiiClient(basepoller.BasePollerFT):
     def _handle_content_blocks(self, content_blocks, objects):
         try:
             for cb in content_blocks:
-                if cb.content_binding.binding_id != \
-                   libtaxii.constants.CB_STIX_XML_111:
-                    LOG.error('%s - Unsupported content binding: %s',
-                              self.name, cb.content_binding.binding_id)
-                    continue
-
                 try:
                     stixpackage = stix.core.stix_package.STIXPackage.from_xml(
                         lxml.etree.fromstring(cb.content)
@@ -867,13 +623,15 @@ class TaxiiClient(basepoller.BasePollerFT):
                 # defaults to ipv4-addr even if the IP is IPv6
                 # this is to auto detect the type
                 if type(ov) == list:
-                    address = ov[0]
+                    address = ov[0].encode('ascii', 'ignore').decode('ascii')
                 else:
-                    address = ov
-
+                    address = ov.encode('ascii', 'ignore').decode('ascii')
+		LOG.info(address)
+		LOG.info('I am here')
                 try:
                     parsed = netaddr.IPNetwork(address)
                 except (netaddr.AddrFormatError, ValueError):
+		    
                     LOG.error('{} - Unknown IP version: {}'.format(self.name, address))
                     return None
 
